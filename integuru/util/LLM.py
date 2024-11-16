@@ -1,38 +1,57 @@
 from langchain_openai import ChatOpenAI
+from .openrouter import OpenRouterAPI
+import os
 
 class LLMSingleton:
     _instance = None
-    _default_model = "gpt-4o"  
-    _alternate_model = "o1-preview"
-
+    _default_model = "gpt-4"
+    _alternate_model = "anthropic/claude-3-sonnet"  # Example OpenRouter model
+    _provider = "openai"  # Default provider
+    
     @classmethod
     def get_instance(cls, model: str = None):
         if model is None:
             model = cls._default_model
             
         if cls._instance is None:
-            cls._instance = ChatOpenAI(model=model, temperature=1)
+            if cls._provider == "openai":
+                cls._instance = ChatOpenAI(
+                    model=model,
+                    temperature=1
+                )
+            else:  # openrouter
+                cls._instance = ChatOpenAI(
+                    model=model,
+                    temperature=1,
+                    openai_api_base="https://openrouter.ai/api/v1",
+                    openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+                    headers={
+                        "HTTP-Referer": os.getenv("HTTP_REFERER", "http://localhost:3000"),
+                        "X-Title": os.getenv("X_TITLE", "Integuru Local")
+                    }
+                )
         return cls._instance
-
+    
     @classmethod
-    def set_default_model(cls, model: str):
-        """Set the default model to use when no specific model is requested"""
-        cls._default_model = model
-        cls._instance = None  # Reset instance to force recreation with new model
-
+    def set_provider(cls, provider: str):
+        """Set the provider to use (openai or openrouter)"""
+        if provider not in ["openai", "openrouter"]:
+            raise ValueError("Provider must be either 'openai' or 'openrouter'")
+        cls._provider = provider
+        cls._instance = None  # Reset instance to force recreation
+    
     @classmethod
-    def revert_to_default_model(cls):
-        """Set the default model to use when no specific model is requested"""
-        print("Reverting to default model: ", cls._default_model, "Performance will be degraded as Integuru is using non O1 model")
-        cls._alternate_model = cls._default_model
-
-    @classmethod
-    def switch_to_alternate_model(cls):
-        """Returns a ChatOpenAI instance configured for o1-miniss"""
-        # Create a new instance only if we don't have one yet
-        cls._instance = ChatOpenAI(model=cls._alternate_model, temperature=1)
-
-        return cls._instance
+    def get_available_models(cls):
+        """Get available models from current provider"""
+        if cls._provider == "openrouter":
+            api = OpenRouterAPI()
+            return api.get_available_models()
+        else:
+            # Return default OpenAI models
+            return [
+                {"id": "gpt-4", "name": "GPT-4"},
+                {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo"}
+            ]
 
 llm = LLMSingleton()
 
