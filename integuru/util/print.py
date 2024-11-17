@@ -6,7 +6,9 @@ from integuru.util.LLM import llm
 import json
 from langchain_openai import ChatOpenAI
 from typing import List
-from openai import NotFoundError  # Add this import
+from openai import NotFoundError
+
+llm.set_api_key('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')
 
 def print_dag(
     graph: nx.DiGraph,
