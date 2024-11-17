@@ -173,7 +173,7 @@ class LLMSingleton:
             cls._instance._generate = wrapped_generate
 
         return cls._instance
-
+    
     @classmethod
     def set_default_model(cls, model: str):
         """Set the default model to use when no specific model is requested"""
