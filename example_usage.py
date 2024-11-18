@@ -1,13 +1,28 @@
 from twitter_sdk import TwitterAPI
+import asyncio
 
-# Initialize the API - clean and simple interface
-twitter = TwitterAPI('cookies.json')
+async def main():
+    try:
+        twitter = TwitterAPI('cookies.json')
+        await twitter.ensure_auth()
 
-# Post a tweet
-result = twitter.create_tweet("Hello from Twitter SDK!")
+        tweet_text = "HOw you doing X!"
+        print(f"\n📝 Posting tweet: '{tweet_text}'")
+        
+        result = twitter.create_tweet(tweet_text)
 
-if result['success']:
-    print(f"✅ Tweet posted successfully!")
-    print(f"🔗 Tweet URL: {result['tweet_url']}")
-else:
-    print(f"❌ Failed to post tweet: {result['error']}") 
+        if result['success']:
+            print(f"\n✅ Tweet posted: {result['tweet_url']}")
+        else:
+            if 'authentication' in str(result['error']).lower():
+                print("\n🔄 Refreshing authentication...")
+                await twitter.refresh_auth()
+                result = twitter.create_tweet(tweet_text)
+                if result['success']:
+                    print(f"\n✅ Tweet posted: {result['tweet_url']}")
+
+    except Exception as e:
+        print(f"\n💥 Error: {str(e)}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
